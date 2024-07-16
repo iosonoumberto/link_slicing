@@ -1,0 +1,564 @@
+<configuration-text>
+## Last changed: 2024-07-16 04:56:28 PDT
+version 23.4R2.9;
+groups {
+    member0 {
+        system {
+            host-name r4a;
+            backup-router 10.49.127.254;
+        }
+        interfaces {
+            fxp0 {
+                unit 0 {
+                    family inet {
+                        address 10.49.235.148/19;
+                    }
+                }
+            }
+        }
+    }
+    global {
+        system {
+            root-authentication {
+                encrypted-password "$1$ZUlES4dp$OUwWo1g7cLoV/aMWpHUnC/";
+            }
+            login {
+                class wheel {
+                    permissions snmp;
+                }
+                user regress {
+                    uid 928;
+                    class superuser;
+                    shell csh;
+                    authentication {
+                        encrypted-password "$1$kPU..$w.4FGRAGanJ8U4Yq6sbj7.";
+                    }
+                }
+                user remote {
+                    uid 2000;
+                    class super-user;
+                }
+            }
+            services {
+                netconf {
+                    ssh;
+                }
+                ssh {
+                    root-login allow;
+                }
+                finger;
+                ftp;
+                rlogin;
+                telnet;
+                xnm-clear-text;
+            }
+            domain-name englab.juniper.net;
+            domain-search [ englab.juniper.net juniper.net jnpr.net ];
+            time-zone America/Los_Angeles;
+            debugger-on-break;
+            dump-on-panic;
+            authentication-order [ password radius ];
+            name-server {
+                10.49.32.95;
+                10.49.32.97;
+            }
+            radius-server {
+                10.48.144.16 secret "$9$TQ/t1IcSrKAt0IRheK8X7VYgaZDm5zNdiqmTn6";
+                10.48.144.17 secret "$9$GqUqf3nCApOPfQn690ORhSeWL7-boZDylsgoGHk";
+            }
+            syslog {
+                host log {
+                    kernel info;
+                    any notice;
+                    pfe info;
+                    interactive-commands any;
+                }
+                file messages {
+                    kernel info;
+                    any notice;
+                    authorization info;
+                    pfe info;
+                    archive world-readable;
+                }
+                file security {
+                    interactive-commands any;
+                    archive world-readable;
+                }
+            }
+            processes {
+                routing enable;
+                ntp enable;
+                management enable;
+                watchdog enable;
+                snmp enable;
+                inet-process enable;
+                mib-process enable;
+            }
+            ntp {
+                boot-server 66.129.255.75;
+                server 66.129.255.75;
+                server 172.29.131.60;
+                server 172.29.135.60;
+            }
+        }
+        chassis {
+            dump-on-panic;
+        }
+        snmp {
+            location "Systest lab";
+            contact "Jay Lloyd";
+            interface fxp0.0;
+            community public {
+                authorization read-only;
+            }
+            community private {
+                authorization read-write;
+            }
+        }
+        routing-options {
+            static {
+                route 172.16.0.0/12 {
+                    next-hop 10.49.255.254;
+                    retain;
+                    no-readvertise;
+                }
+                route 192.168.0.0/16 {
+                    next-hop 10.49.255.254;
+                    retain;
+                    no-readvertise;
+                }
+                route 10.0.0.0/8 {
+                    next-hop 10.49.255.254;
+                    retain;
+                    no-readvertise;
+                }
+                route 66.129.0.0/16 {
+                    next-hop 10.49.255.254;
+                    retain;
+                    no-readvertise;
+                }
+            }
+        }
+    }
+}
+apply-groups [ global member0 ];
+system {
+    host-name r4a;
+    ports {
+        console log-out-on-disconnect;
+    }
+}
+chassis {
+    fpc 0 {
+        pic 0 {
+            traffic-manager {
+                mode egress-only;
+            }
+        }
+        flexible-queuing-mode;
+    }
+    network-services enhanced-ip;
+}
+services {
+    network-slicing {
+        slice BGP4-SL;
+        slice VPN-S1;
+    }
+}
+interfaces {
+    ge-0/0/0 {
+        unit 0 {
+            family inet {
+                address 192.168.24.1/31;
+            }
+            family iso;
+            family mpls {
+                maximum-labels 16;
+                filter {
+                    input slice-class;
+                }
+            }
+        }
+    }
+    ge-0/0/1 {
+        unit 0 {
+            family inet {
+                address 192.168.34.1/31;
+            }
+            family iso;
+            family mpls {
+                maximum-labels 16;
+                filter {
+                    input slice-class;
+                }
+            }
+        }
+    }
+    ge-0/0/2 {
+        hierarchical-scheduler maximum-hierarchy-levels 2;
+        unit 0 {
+            family inet {
+                address 192.168.45.0/31;
+            }
+            family iso;
+            family mpls {
+                maximum-labels 16;
+            }
+        }
+    }
+    ge-0/0/3 {
+        unit 0 {
+            family inet {
+                address 192.168.100.0/31;
+            }
+            family iso;
+            family mpls;
+        }
+    }
+    ge-0/0/4 {
+        hierarchical-scheduler;
+        vlan-tagging;
+        unit 0 {
+            vlan-id 100;
+            family inet;
+        }
+    }
+    lo0 {
+        unit 0 {
+            family inet {
+                address 100.4.4.4/32;
+            }
+            family iso {
+                address 49.0001.0000.0000.0014.00;
+            }
+        }
+        unit 100 {
+            family inet {
+                address 4.3.2.1/32;
+            }
+        }
+    }
+}
+policy-options {
+    policy-statement bgp4-slice {
+        term ok {
+            from {
+                family inet;
+                protocol bgp;
+            }
+            then {
+                accept;
+                slice BGP4-SL;
+            }
+        }
+    }
+    policy-statement deny-all {
+        then reject;
+    }
+    policy-statement exp-ebgp {
+        term tc {
+            from community [ tc555 tc666 ];
+            then accept;
+        }
+        term rr {
+            from {
+                protocol isis;
+                route-filter 100.0.0.100/32 exact;
+            }
+            then accept;
+        }
+    }
+    policy-statement exp-rr {
+        inactive: term stc {
+            from {
+                protocol static;
+                route-filter 123.4.4.4/32 exact;
+            }
+            then {
+                community add color666;
+                accept;
+            }
+        }
+        term stc2 {
+            from {
+                protocol static;
+                route-filter 123.4.4.41/32 exact;
+            }
+            then {
+                community add color555;
+                accept;
+            }
+        }
+        then reject;
+    }
+    policy-statement exp-sids-sr {
+        term nodesid {
+            from {
+                interface lo0.0;
+                route-filter 100.4.4.4/32 exact;
+            }
+            then {
+                prefix-segment {
+                    algorithm 128 index 114 node-segment;
+                    algorithm 129 index 124 node-segment;
+                    index 104;
+                    node-segment;
+                }
+                accept;
+            }
+        }
+        then reject;
+    }
+    policy-statement imp-ebgp {
+        term ok {
+            from protocol bgp;
+            then accept;
+        }
+    }
+    policy-statement lb {
+        then {
+            load-balance per-packet;
+        }
+    }
+    policy-statement nhs {
+        then {
+            next-hop self;
+        }
+    }
+    policy-statement vpn100-exp {
+        term lo0 {
+            from interface lo0.100;
+            then {
+                community add rt100;
+                community add color555;
+                accept;
+            }
+        }
+        then reject;
+    }
+    policy-statement vpn100-imp {
+        term ok {
+            from {
+                protocol bgp;
+                community rt100;
+            }
+            then accept;
+        }
+        then reject;
+    }
+    community color555 members color:0:555;
+    community color666 members color:0:666;
+    community rt100 members target:1:100;
+    community tc555 members transport-target:0:555;
+    community tc666 members transport-target:0:666;
+}
+class-of-service {
+    classifiers {
+        exp EXP-SLICE {
+            forwarding-class PRM {
+                loss-priority high code-points 110;
+                loss-priority low code-points 100;
+            }
+            forwarding-class STD {
+                loss-priority low code-points 000;
+            }
+        }
+    }
+    forwarding-classes {
+        class PRM queue-num 1;
+        class STD queue-num 0;
+    }
+    traffic-control-profiles {
+        IFD {
+            shaping-rate 1g;
+        }
+        VPN-S1 {
+            scheduler-map SM-VPN-S1;
+            shaping-rate 2m;
+            guaranteed-rate 1m;
+        }
+    }
+    interfaces {
+        ge-0/0/0 {
+            unit 0 {
+                classifiers {
+                    exp EXP-SLICE;
+                }
+            }
+        }
+        ge-0/0/1 {
+            unit 0 {
+                classifiers {
+                    exp EXP-SLICE;
+                }
+            }
+        }
+        ge-0/0/2 {
+            output-traffic-control-profile IFD;
+            slice VPN-S1 {
+                output-traffic-control-profile VPN-S1;
+            }
+        }
+    }
+    scheduler-maps {
+        SM-VPN-S1 {
+            forwarding-class PRM scheduler PRM-SCH;
+            forwarding-class STD scheduler STD-SCH;
+        }
+    }
+    schedulers {
+        PRM-SCH {
+            transmit-rate 10k;
+            priority low;
+        }
+        STD-SCH {
+            transmit-rate {
+                percent 2;
+                rate-limit;
+            }
+            buffer-size percent 2;
+            priority low;
+        }
+    }
+}
+firewall {
+    family mpls {
+        filter slice-class {
+            interface-specific;
+            term vpn-a {
+                from {
+                    label 1000011 {
+                        bottom;
+                    }
+                    exp 0;
+                }
+                then {
+                    slice VPN-S1;
+                    count vpn-a;
+                    accept;
+                }
+            }
+            term all {
+                then accept;
+            }
+        }
+    }
+}
+routing-instances {
+    vpn100 {
+        instance-type vrf;
+        interface lo0.100;
+        route-distinguisher 100.4.4.4:100;
+        vrf-import vpn100-imp;
+        vrf-export vpn100-exp;
+        vrf-table-label;
+    }
+}
+routing-options {
+    flex-algorithm 128 {
+        color 555;
+        use-transport-class;
+    }
+    route-distinguisher-id 100.4.4.4;
+    resolution {
+        preserve-nexthop-hierarchy;
+    }
+    autonomous-system 100;
+    static {
+        route 123.4.1.1/32 discard;
+        route 123.4.4.4/32 discard;
+        route 123.4.4.41/32 discard;
+        route 123.44.44.44/32 discard;
+    }
+    transport-class {
+        name tc666 {
+            color 666;
+        }
+        name tc555 {
+            color 555;
+        }
+    }
+    forwarding-table {
+        export [ lb bgp4-slice ];
+    }
+}
+protocols {
+    bfd {
+        sbfd {
+            local-discriminator 14;
+        }
+    }
+    bgp {
+        group ibgp {
+            type internal;
+            local-address 100.4.4.4;
+            family inet {
+                transport;
+            }
+            neighbor 100.1.1.1;
+        }
+        group ebgp {
+            type external;
+            import imp-ebgp;
+            family inet {
+                transport;
+                unicast;
+            }
+            export exp-ebgp;
+            peer-as 200;
+            neighbor 192.168.45.1;
+        }
+        group rr {
+            type internal;
+            local-address 100.4.4.4;
+            family inet {
+                unicast;
+            }
+            family inet-vpn {
+                unicast;
+            }
+            export exp-rr;
+            neighbor 100.0.0.100;
+        }
+    }
+    isis {
+        interface ge-0/0/0.0 {
+            level 1 disable;
+            point-to-point;
+        }
+        interface ge-0/0/1.0 {
+            level 1 disable;
+            point-to-point;
+        }
+        interface ge-0/0/3.0 {
+            level 1 disable;
+            point-to-point;
+        }
+        interface lo0.0;
+        source-packet-routing {
+            srgb start-label 1000 index-range 1000;
+            flex-algorithm [ 128 129 ];
+        }
+        level 2 wide-metrics-only;
+        backup-spf-options {
+            use-post-convergence-lfa;
+            use-source-packet-routing;
+        }
+        traffic-engineering {
+            l3-unicast-topology;
+            advertisement always;
+        }
+        export exp-sids-sr;
+    }
+    mpls {
+        interface ge-0/0/0.0;
+        interface ge-0/0/1.0;
+        interface ge-0/0/2.0;
+    }
+    rsvp {
+        interface ge-0/0/0.0;
+        interface ge-0/0/1.0;
+        interface ge-0/0/2.0;
+    }
+}
+</configuration-text>
